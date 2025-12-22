@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AG Café Collective — Premium Ordering</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+
+<body>
+  <!-- Top Nav -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">AG</div>
+      <div class="brandText">
+        <div class="brandName">AG Café Collective</div>
+        <div class="brandTag">Dark • Luxury • Portfolio-grade</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="#menu" class="navLink">Menu</a>
+      <a href="#checkout" class="navLink">Checkout</a>
+      <button class="cartPill" id="toggleCartBtn" type="button" aria-label="Toggle cart">
+        Cart <span class="badge" id="cartCount">0</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="heroInner">
+      <div class="heroLeft">
+        <div class="kicker">PREMIUM CAFÉ ORDERING</div>
+        <h1 class="heroTitle">Midnight-smooth coffee.<br/>Luxury served fast.</h1>
+        <p class="heroSub">
+          Real working ordering system with Formspree. Built to impress international clients —
+          perfect for portfolio & selling website services.
+        </p>
+
+        <div class="heroCtas">
+          <a class="btn btnGold" href="#menu">Explore Full Menu</a>
+          <a class="btn btnGhost" href="#checkout">Go to Checkout</a>
+        </div>
+
+        <div class="chips">
+          <span class="chip">Best Seller Ribbon</span>
+          <span class="chip">Add-ons (+₱20)</span>
+          <span class="chip">Lalamove-style Delivery</span>
+          <span class="chip">GCash Auto Show</span>
+        </div>
+      </div>
+
+      <div class="heroRight">
+        <div class="heroCard">
+          <img id="heroImg" alt="AG Café banner" />
+          <div class="heroOverlay">
+            <div class="heroOverlayTitle">AG Café Collective</div>
+            <div class="heroOverlaySub">Dark • Premium • Portfolio-grade</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- subtle cloud glow bg -->
+    <div class="cloudGlow cloudGlow1"></div>
+    <div class="cloudGlow cloudGlow2"></div>
+    <div class="cloudGlow cloudGlow3"></div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="layout">
+    <!-- Menu Section -->
+    <section id="menu" class="section">
+      <div class="sectionHead">
+        <div>
+          <div class="kicker">FULL MENU</div>
+          <h2 class="sectionTitle">Order your favorites</h2>
+          <p class="sectionSub">Tap an item, adjust quantity, add to cart. Your Order Summary updates instantly.</p>
+        </div>
+
+        <div class="filters" role="tablist" aria-label="Menu category filters">
+          <button class="filterBtn active" data-filter="all" type="button">All</button>
+          <button class="filterBtn" data-filter="best" type="button">Best Sellers</button>
+          <button class="filterBtn" data-filter="espresso" type="button">Espresso & Hot</button>
+          <button class="filterBtn" data-filter="iced" type="button">Iced / Signature</button>
+          <button class="filterBtn" data-filter="optional" type="button">Optional</button>
+        </div>
+      </div>
+
+      <div id="menuGrid" class="menuGrid" aria-live="polite"></div>
+    </section>
+
+    <!-- Checkout + Summary -->
+    <section id="checkout" class="section checkoutGrid">
+      <div class="checkoutCard">
+        <div class="kicker">CHECKOUT</div>
+        <h2 class="sectionTitle">Place your order</h2>
+        <p class="sectionSub">
+          Orders go directly to your Formspree inbox:
+          <strong>dreamedia.enterprise@gmail.com</strong>
+        </p>
+
+        <form id="orderForm" action="https://formspree.io/f/mzdpadbd" method="POST">
+          <!-- customer info -->
+          <div class="formRow">
+            <div class="field">
+              <label for="fullName">Full Name</label>
+              <input id="fullName" name="fullName" type="text" placeholder="e.g., Andrea Garcia" required />
+            </div>
+            <div class="field">
+              <label for="phone">Phone Number</label>
+              <input id="phone" name="phone" type="text" placeholder="e.g., 09929440921" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="address">Delivery Address</label>
+            <textarea id="address" name="address" rows="3" placeholder="House/Street, Barangay, City" required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="notes">Notes (optional)</label>
+            <textarea id="notes" name="notes" rows="2" placeholder="Less sugar, no ice, landmark, etc."></textarea>
+          </div>
+
+          <!-- payment -->
+          <div class="field">
+            <label>Payment Method</label>
+            <div class="segmented" role="radiogroup" aria-label="Payment method">
+              <button class="segBtn active" type="button" data-pay="COD">Cash on Delivery</button>
+              <button class="segBtn" type="button" data-pay="GCASH">GCash</button>
+            </div>
+
+            <div id="gcashBox" class="gcashBox hidden">
+              <div class="gcashTitle">GCash Payment</div>
+              <div class="gcashSub">Show this to customer after confirmation (edit anytime).</div>
+              <div class="gcashLine"><span>GCash Name:</span><strong>Andrea Garcia</strong></div>
+              <div class="gcashLine"><span>GCash Number:</span><strong>09929440921</strong></div>
+            </div>
+          </div>
+
+          <!-- hidden computed fields -->
+          <input type="hidden" name="order_items" id="order_items" />
+          <input type="hidden" name="order_subtotal" id="order_subtotal" />
+          <input type="hidden" name="order_addons" id="order_addons" />
+          <input type="hidden" name="order_delivery_zone" id="order_delivery_zone" />
+          <input type="hidden" name="order_delivery_fee" id="order_delivery_fee" />
+          <input type="hidden" name="order_total" id="order_total" />
+          <input type="hidden" name="payment_method" id="payment_method" />
+
+          <button id="submitBtn" class="btn btnGold btnFull" type="submit">
+            Submit Order
+          </button>
+
+          <p class="fineprint">
+            By submitting, you agree this is a real order request. You will be contacted for confirmation.
+          </p>
+        </form>
+      </div>
+
+      <div class="quickCard">
+        <div class="kicker">QUICK SUMMARY</div>
+        <div class="quickTop">
+          <div>
+            <div class="quickLabel">Total</div>
+            <div class="quickHint">Tip: You can still edit quantities in the menu or in the cart.</div>
+          </div>
+          <div class="quickTotal" id="quickTotal">₱0</div>
+        </div>
+
+        <div class="kicker" style="margin-top:18px;">DELIVERY FEES</div>
+        <div class="deliveryInfo">
+          <div class="deliveryRow"><span>Near</span><strong>₱79</strong></div>
+          <div class="deliveryRow"><span>Mid</span><strong>₱129</strong></div>
+          <div class="deliveryRow"><span>Far</span><strong>₱189</strong></div>
+          <div class="deliveryNote">Lalamove-style estimate. Auto-added based on selected zone in Order Summary.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Sticky Cart Drawer -->
+  <aside class="cartDrawer" id="cartDrawer" aria-label="Order Summary">
+    <div class="cartHead">
+      <div>
+        <div class="kicker">ORDER SUMMARY</div>
+        <div class="cartTitle">Your Cart</div>
+      </div>
+      <button class="iconBtn" id="closeCartBtn" type="button" aria-label="Close cart">↔</button>
+    </div>
+
+    <div class="cartBody">
+      <div id="cartEmpty" class="cartEmpty">Your cart is empty</div>
+      <div id="cartList" class="cartList"></div>
+
+      <div class="cartBox">
+        <div class="cartBoxHead">
+          <div class="cartBoxTitle">Add-ons (₱20 each)</div>
+          <div class="muted">Optional</div>
+        </div>
+
+        <label class="checkRow">
+          <input type="checkbox" id="addonShot" />
+          <span>Extra espresso shot <strong>+₱20</strong></span>
+        </label>
+        <label class="checkRow">
+          <input type="checkbox" id="addonOat" />
+          <span>Oat milk <strong>+₱20</strong></span>
+        </label>
+        <label class="checkRow">
+          <input type="checkbox" id="addonDrizzle" />
+          <span>Caramel drizzle <strong>+₱20</strong></span>
+        </label>
+      </div>
+
+      <div class="cartBox">
+        <div class="cartBoxHead">
+          <div class="cartBoxTitle">Delivery</div>
+          <div class="fee" id="deliveryFeeText">₱79</div>
+        </div>
+
+        <div class="zone">
+          <button class="zoneBtn active" data-zone="NEAR" type="button">Near <span>₱79</span></button>
+          <button class="zoneBtn" data-zone="MID" type="button">Mid <span>₱129</span></button>
+          <button class="zoneBtn" data-zone="FAR" type="button">Far <span>₱189</span></button>
+        </div>
+
+        <div class="totals">
+          <div class="tRow"><span>Subtotal</span><strong id="subtotalText">₱0</strong></div>
+          <div class="tRow"><span>Add-ons</span><strong id="addonsText">₱0</strong></div>
+          <div class="tRow"><span>Delivery Fee</span><strong id="deliveryText">₱79</strong></div>
+          <div class="tRow grand"><span>Total</span><strong id="totalText">₱0</strong></div>
+        </div>
+
+        <button class="btn btnGold btnFull" id="checkoutBtn" type="button">Checkout</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <div class="toastInner" id="toastInner">Added to cart</div>
+  </div>
+
+  <footer class="footer">
+    <div class="footerLeft">
+      <div class="footerName">AG Café Collective</div>
+      <div class="footerSub">Portfolio-grade premium ordering website • Built by Andrea Garcia</div>
+    </div>
+    <div class="footerRight">
+      <a href="#menu">Menu</a>
+      <a href="#checkout">Checkout</a>
+      <a href="#">Back to top</a>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
