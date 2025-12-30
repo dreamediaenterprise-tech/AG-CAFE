@@ -1,10 +1,10 @@
-/* AG Café Collective — Full rebuild (fixed):
-   - Default qty in menu = 0 (no "1" agad)
-   - Add to Cart now works + updates Order Summary
-   - All categories render w/ exact image links
-   - Lalamove-style delivery fees (Near/Mid/Far)
-   - Add-ons (+₱20 each)
-   - Formspree hidden order payload filled before submit
+/* AG Café Collective — Premium Upgrade (no backend)
+   - Fixes + premium UX polish
+   - Cart overlay on mobile
+   - Reveal animations
+   - Dark/Light toggle (default dark)
+   - Success screen (AJAX Formspree)
+   - GCash proof upload (optional, shows only on GCash)
 */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -42,8 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ]
   };
 
-  // ====== Premium Pricing (base + ₱20 rule already baked in) ======
-  // You asked: premium pricing + all drinks +₱20 (we apply realistic premium baseline)
+  // ====== Menu ======
   const MENU = [
     // Best Sellers
     { id:"b1", name:"Caramel Cloud Latte", cat:"best", catLabel:"Best Sellers", price: 189, img: IMAGES.best[0], ribbon:true },
@@ -70,16 +69,12 @@ document.addEventListener("DOMContentLoaded", () => {
     { id:"o3", name:"Chocolate Dessert", cat:"optional", catLabel:"Optional", price: 159, img: IMAGES.optional[2] }
   ];
 
-  // ====== Delivery (Lalamove-style higher fees) ======
-  const DELIVERY = {
-    NEAR: 79,
-    MID: 129,
-    FAR: 189
-  };
+  // ====== Delivery ======
+  const DELIVERY = { NEAR: 79, MID: 129, FAR: 189 };
 
   // ====== State ======
-  const menuQty = {};      // per item id, qty in menu (default 0)
-  const cart = {};         // per item id, qty in cart
+  const menuQty = {};      // qty per item in menu (default 0)
+  const cart = {};         // qty per item in cart
   let deliveryZone = "NEAR";
   let paymentMethod = "COD";
 
@@ -91,6 +86,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleCartBtn = document.getElementById("toggleCartBtn");
   const closeCartBtn = document.getElementById("closeCartBtn");
   const cartCount = document.getElementById("cartCount");
+
+  const overlay = document.getElementById("overlay");
 
   const cartEmpty = document.getElementById("cartEmpty");
   const cartList = document.getElementById("cartList");
@@ -122,12 +119,52 @@ document.addEventListener("DOMContentLoaded", () => {
   const order_total = document.getElementById("order_total");
   const payment_method = document.getElementById("payment_method");
 
+  const submitBtn = document.getElementById("submitBtn");
+
+  // Mobile bar
+  const mobileBar = document.getElementById("mobileBar");
+  const mobileCartBtn = document.getElementById("mobileCartBtn");
+  const mobileCheckoutBtn = document.getElementById("mobileCheckoutBtn");
+  const mobileTotalValue = document.getElementById("mobileTotalValue");
+  const mobileCount = document.getElementById("mobileCount");
+  const openCartFromSummary = document.getElementById("openCartFromSummary");
+
+  // Success
+  const successScreen = document.getElementById("successScreen");
+  const successPay = document.getElementById("successPay");
+  const successTotal = document.getElementById("successTotal");
+  const newOrderBtn = document.getElementById("newOrderBtn");
+
+  // Theme
+  const themeBtn = document.getElementById("themeBtn");
+
+  // ====== Theme init (default DARK) ======
+  (function initTheme(){
+    const saved = localStorage.getItem("ag_theme");
+    if (saved === "light") document.body.classList.add("light");
+    updateThemeIcon();
+  })();
+
+  function updateThemeIcon(){
+    const isLight = document.body.classList.contains("light");
+    themeBtn.querySelector(".icon").textContent = isLight ? "☀" : "☾";
+  }
+
+  themeBtn.addEventListener("click", () => {
+    document.body.classList.toggle("light");
+    localStorage.setItem("ag_theme", document.body.classList.contains("light") ? "light" : "dark");
+    updateThemeIcon();
+  });
+
   // ====== Hero random image ======
   heroImg.src = HERO_IMAGES[Math.floor(Math.random() * HERO_IMAGES.length)];
 
   // ====== Helpers ======
   const peso = (n) => `₱${Number(n).toLocaleString("en-PH")}`;
 
+  function cartHasItems(){
+    return Object.keys(cart).length > 0;
+  }
   function getAddonsCount(){
     return [addonShot, addonOat, addonDrizzle].filter(x => x.checked).length;
   }
@@ -148,10 +185,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return s;
   }
   function getTotal(){
-    const subtotal = getSubtotal();
-    const addons = (Object.keys(cart).length > 0) ? getAddonsTotal() : 0; // addons only if may cart
-    const delivery = (Object.keys(cart).length > 0) ? getDeliveryFee() : 0;
-    return subtotal + addons + delivery;
+    if (!cartHasItems()) return 0;
+    return getSubtotal() + getAddonsTotal() + getDeliveryFee();
   }
 
   function showToast(msg){
@@ -161,19 +196,51 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast._t = window.setTimeout(() => toast.classList.remove("show"), 1200);
   }
 
+  function setOverlay(show){
+    if (!overlay) return;
+    overlay.classList.toggle("show", !!show);
+    overlay.setAttribute("aria-hidden", show ? "false" : "true");
+  }
+
+  // ====== Drawer open/close ======
+  function openCart(){
+    cartDrawer.classList.remove("closed");
+    if (window.matchMedia("(max-width: 620px)").matches) setOverlay(true);
+  }
+  function closeCart(){
+    cartDrawer.classList.add("closed");
+    setOverlay(false);
+  }
+  function isCartOpen(){
+    return !cartDrawer.classList.contains("closed");
+  }
+
+  toggleCartBtn.addEventListener("click", () => {
+    if (isCartOpen()) closeCart();
+    else openCart();
+  });
+  closeCartBtn.addEventListener("click", closeCart);
+  overlay.addEventListener("click", closeCart);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeCart();
+  });
+
+  // default: closed on small screens
+  if (window.matchMedia("(max-width: 620px)").matches) {
+    cartDrawer.classList.add("closed");
+  } else {
+    cartDrawer.classList.remove("closed");
+  }
+
   // ====== Render Menu ======
   function renderMenu(filter="all"){
-    if (!menuGrid) return;
-
-    const filtered = MENU.filter(item => {
-      if (filter === "all") return true;
-      return item.cat === filter;
-    });
+    const filtered = MENU.filter(item => (filter === "all" ? true : item.cat === filter));
 
     menuGrid.innerHTML = filtered.map(item => {
-      const q = menuQty[item.id] ?? 0; // DEFAULT 0 (fix "may 1 agad")
+      const q = menuQty[item.id] ?? 0;
       return `
-        <article class="card" data-id="${item.id}" data-cat="${item.cat}">
+        <article class="card revealCard" data-id="${item.id}" data-cat="${item.cat}">
           ${item.ribbon ? `<div class="ribbon">Best Seller</div>` : ``}
           <img class="cardMedia" src="${item.img}" alt="${item.name}" loading="lazy"/>
           <div class="cardBody">
@@ -187,9 +254,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             <div class="cardActions">
               <div class="qty">
-                <button class="qBtn" type="button" data-act="minus">−</button>
+                <button class="qBtn" type="button" data-act="minus" aria-label="Decrease quantity">−</button>
                 <div class="qVal" data-role="qtyVal">${q}</div>
-                <button class="qBtn" type="button" data-act="plus">+</button>
+                <button class="qBtn" type="button" data-act="plus" aria-label="Increase quantity">+</button>
               </div>
               <button class="addBtn" type="button" data-act="add">Add to Cart</button>
             </div>
@@ -198,13 +265,13 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
     }).join("");
 
-    // Bind card events
+    // Bind per-card events
     Array.from(menuGrid.querySelectorAll(".card")).forEach(card => {
       const id = card.getAttribute("data-id");
       const minus = card.querySelector('[data-act="minus"]');
-      const plus = card.querySelector('[data-act="plus"]');
-      const add = card.querySelector('[data-act="add"]');
-      const qtyVal = card.querySelector('[data-role="qtyVal"]');
+      const plus  = card.querySelector('[data-act="plus"]');
+      const add   = card.querySelector('[data-act="add"]');
+      const qtyVal= card.querySelector('[data-role="qtyVal"]');
 
       function setMenuQty(val){
         const v = Math.max(0, Number(val) || 0);
@@ -213,23 +280,23 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       minus.addEventListener("click", () => setMenuQty((menuQty[id] ?? 0) - 1));
-      plus.addEventListener("click", () => setMenuQty((menuQty[id] ?? 0) + 1));
+      plus.addEventListener("click",  () => setMenuQty((menuQty[id] ?? 0) + 1));
 
       add.addEventListener("click", () => {
-        // If qty is 0, set to 1 automatically (more user-friendly)
         const q = (menuQty[id] ?? 0);
         const addQty = q > 0 ? q : 1;
 
         cart[id] = (cart[id] ?? 0) + addQty;
 
-        // After adding, reset menu qty back to 0 (para di confusing)
         setMenuQty(0);
-
         updateCartUI();
         showToast(`Added ${addQty} to cart`);
         openCart();
       });
     });
+
+    // reveal cards after render
+    revealNow();
   }
 
   // ====== Render Cart ======
@@ -237,6 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const ids = Object.keys(cart);
     const count = ids.reduce((acc, id) => acc + (cart[id] || 0), 0);
     cartCount.textContent = String(count);
+    mobileCount.textContent = String(count);
 
     cartEmpty.style.display = ids.length === 0 ? "block" : "none";
     cartList.innerHTML = "";
@@ -263,9 +331,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             <div class="cartItemControls">
               <div class="qty">
-                <button class="qBtn" type="button" data-cart="minus">−</button>
+                <button class="qBtn" type="button" data-cart="minus" aria-label="Decrease quantity">−</button>
                 <div class="qVal">${qty}</div>
-                <button class="qBtn" type="button" data-cart="plus">+</button>
+                <button class="qBtn" type="button" data-cart="plus" aria-label="Increase quantity">+</button>
               </div>
               <button class="smallBtn removeBtn" type="button" data-cart="remove">Remove</button>
             </div>
@@ -296,9 +364,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // totals
     const subtotal = getSubtotal();
-    const addons = (Object.keys(cart).length > 0) ? getAddonsTotal() : 0;
-    const delivery = (Object.keys(cart).length > 0) ? getDeliveryFee() : 0;
-    const total = (Object.keys(cart).length > 0) ? getTotal() : 0;
+    const addons = cartHasItems() ? getAddonsTotal() : 0;
+    const delivery = cartHasItems() ? getDeliveryFee() : 0;
+    const total = getTotal();
 
     deliveryFeeText.textContent = peso(delivery);
     subtotalText.textContent = peso(subtotal);
@@ -307,12 +375,15 @@ document.addEventListener("DOMContentLoaded", () => {
     totalText.textContent = peso(total);
     quickTotal.textContent = peso(total);
 
-    // update hidden form fields
+    mobileTotalValue.textContent = peso(total);
+
+    // update hidden fields
     fillHiddenFields();
   }
 
   function fillHiddenFields(){
     const ids = Object.keys(cart);
+
     const itemsText = ids.length
       ? ids.map(id => {
           const item = MENU.find(m => m.id === id);
@@ -322,9 +393,9 @@ document.addEventListener("DOMContentLoaded", () => {
       : "No items";
 
     const subtotal = getSubtotal();
-    const addons = (ids.length > 0) ? getAddonsTotal() : 0;
-    const delivery = (ids.length > 0) ? getDeliveryFee() : 0;
-    const total = (ids.length > 0) ? getTotal() : 0;
+    const addons = cartHasItems() ? getAddonsTotal() : 0;
+    const delivery = cartHasItems() ? getDeliveryFee() : 0;
+    const total = getTotal();
 
     order_items.value = itemsText;
     order_subtotal.value = peso(subtotal);
@@ -343,31 +414,6 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.classList.add("active");
       renderMenu(btn.dataset.filter);
     });
-  });
-
-  // ====== Drawer open/close ======
-  function openCart(){
-    cartDrawer.classList.remove("closed");
-  }
-  function closeCart(){
-    cartDrawer.classList.add("closed");
-  }
-
-  // default open on desktop; closed on small screens for cleaner view
-  if (window.matchMedia("(max-width: 620px)").matches) {
-    cartDrawer.classList.add("closed");
-  } else {
-    cartDrawer.classList.remove("closed");
-  }
-
-  toggleCartBtn.addEventListener("click", () => {
-    cartDrawer.classList.toggle("closed");
-  });
-  closeCartBtn.addEventListener("click", closeCart);
-
-  // checkout scroll
-  checkoutBtn.addEventListener("click", () => {
-    document.querySelector("#checkout")?.scrollIntoView({ behavior:"smooth" });
   });
 
   // ====== Add-ons change ======
@@ -399,20 +445,120 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ====== Form validation (must have cart items) ======
-  orderForm.addEventListener("submit", (e) => {
-    const hasItems = Object.keys(cart).length > 0;
-    if (!hasItems){
-      e.preventDefault();
+  // ====== Checkout scroll ======
+  checkoutBtn.addEventListener("click", () => {
+    closeCart();
+    document.querySelector("#checkout")?.scrollIntoView({ behavior:"smooth" });
+  });
+
+  // ====== Mobile bar actions ======
+  mobileCartBtn.addEventListener("click", openCart);
+  mobileCheckoutBtn.addEventListener("click", () => {
+    closeCart();
+    document.querySelector("#checkout")?.scrollIntoView({ behavior:"smooth" });
+  });
+  openCartFromSummary.addEventListener("click", openCart);
+
+  // ====== Success helpers ======
+  function showSuccess(){
+    successPay.textContent = paymentMethod;
+    successTotal.textContent = order_total.value || "₱0";
+    successScreen.classList.add("show");
+  }
+  function hideSuccess(){
+    successScreen.classList.remove("show");
+  }
+  newOrderBtn.addEventListener("click", () => {
+    hideSuccess();
+    document.querySelector("#menu")?.scrollIntoView({ behavior:"smooth" });
+  });
+
+  // ====== Form submit (AJAX Formspree + success screen) ======
+  function setSubmitting(isSubmitting){
+    if (!submitBtn) return;
+    submitBtn.classList.toggle("loading", !!isSubmitting);
+    submitBtn.disabled = !!isSubmitting;
+  }
+
+  function resetOrderState(){
+    // clear cart
+    Object.keys(cart).forEach(k => delete cart[k]);
+    // reset add-ons
+    addonShot.checked = false;
+    addonOat.checked = false;
+    addonDrizzle.checked = false;
+    // reset delivery
+    deliveryZone = "NEAR";
+    zoneBtns.forEach(b => b.classList.toggle("active", b.dataset.zone === "NEAR"));
+    // reset payment to COD
+    paymentMethod = "COD";
+    payBtns.forEach(b => b.classList.toggle("active", b.dataset.pay === "COD"));
+    gcashBox.classList.add("hidden");
+    payment_method.value = "COD";
+
+    updateCartUI();
+    renderMenu(document.querySelector(".filterBtn.active")?.dataset.filter || "all");
+  }
+
+  orderForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!cartHasItems()){
       openCart();
       showToast("Add at least 1 item to cart");
       return;
     }
+
     fillHiddenFields();
+
+    // Build FormData (supports file upload)
+    const formData = new FormData(orderForm);
+
+    try{
+      setSubmitting(true);
+
+      const res = await fetch(orderForm.action, {
+        method: "POST",
+        body: formData,
+        headers: { "Accept": "application/json" }
+      });
+
+      if (!res.ok) throw new Error("Form submission failed");
+
+      // reset UI
+      orderForm.reset();
+      resetOrderState();
+      closeCart();
+      showSuccess();
+    }catch(err){
+      console.error(err);
+      showToast("Submit failed. Try again.");
+    }finally{
+      setSubmitting(false);
+    }
   });
 
+  // ====== Reveal animations ======
+  function revealNow(){
+    const targets = [
+      ...document.querySelectorAll(".reveal"),
+      ...document.querySelectorAll(".revealCard")
+    ];
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting){
+          entry.target.classList.add("in");
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    targets.forEach(el => io.observe(el));
+  }
+
   // ====== Init ======
-  // Important: renderMenu FIRST, then updateCartUI (so menu exists, no 'nawala menu' bug)
   renderMenu("all");
   updateCartUI();
+  revealNow();
 });
